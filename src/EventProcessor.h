@@ -1,0 +1,26 @@
+#ifndef EVENT_PROCESSOR_H
+#define EVENT_PROCESSOR_H
+
+#include <unordered_map>
+
+#include "RE/Skyrim.h"
+#include "SKSE/SKSE.h"
+
+class EventProcessor : public RE::BSTEventSink<RE::InputEvent*>,
+                       public RE::BSTEventSink<RE::MenuOpenCloseEvent>,
+                       public RE::BSTEventSink<RE::TESFastTravelEndEvent> {
+public:
+    static EventProcessor* GetSingleton() {
+        static EventProcessor instance;
+        return &instance;
+    }
+    
+    RE::BSEventNotifyControl ProcessEvent(RE::InputEvent* const* eventPtr,
+                                          RE::BSTEventSource<RE::InputEvent*>*) override;
+    RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* event,
+                                          RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override;
+    RE::BSEventNotifyControl ProcessEvent(const RE::TESFastTravelEndEvent* event,
+                                          RE::BSTEventSource<RE::TESFastTravelEndEvent>* eventSource) override;
+};
+
+#endif  // EVENT_PROCESSOR_H
