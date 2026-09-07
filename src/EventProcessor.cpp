@@ -100,6 +100,12 @@ RE::BSEventNotifyControl EventProcessor::ProcessEvent(const RE::MenuOpenCloseEve
                 extensionHint->uiMovie->Invoke("_root.MapExtensionHint_mc.setWidescreen", nullptr, &arg, 1);
             }
         } else if (event->menuName == RE::MapMenu::MENU_NAME) {
+            if (pendingMapReopen) {
+                pendingMapReopen = false;
+                logger::info("[WORLD SWITCH] Replacement MapMenu opened for '{}'",
+                             targetWorld && targetWorld->GetName() ? targetWorld->GetName() : "<null>");
+            }
+
             Scaleform::MapExtensionHint::Show();
         } else if (event->menuName == Scaleform::MapExtension::MENU_NAME) {
             if (const auto extensionMenu = RE::UI::GetSingleton()->GetMenu(Scaleform::MapExtension::MENU_NAME);
@@ -261,9 +267,8 @@ RE::BSEventNotifyControl EventProcessor::ProcessEvent(const RE::MenuOpenCloseEve
         }
 
         if (pendingMapReopen) {
-            pendingMapReopen = false;
-
             if (!pendingTargetWorld) {
+                pendingMapReopen = false;
                 pendingWorldSwitch = false;
                 return RE::BSEventNotifyControl::kContinue;
             }
@@ -280,6 +285,7 @@ RE::BSEventNotifyControl EventProcessor::ProcessEvent(const RE::MenuOpenCloseEve
 
             if (!tasks) {
                 logger::error("[WORLD SWITCH] Task interface unavailable");
+                pendingMapReopen = false;
 
                 return RE::BSEventNotifyControl::kContinue;
             }
