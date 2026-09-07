@@ -284,12 +284,13 @@ RE::BSEventNotifyControl EventProcessor::ProcessEvent(const RE::MenuOpenCloseEve
                 return RE::BSEventNotifyControl::kContinue;
             }
 
-            // MapMenu's close event fires before all of its native map-scene resources
-            // have necessarily been detached. Reopening from this same cycle can leave
-            // the previous terrain root alive, which is especially visible with FWMF:
-            // the old and new paper maps are rendered together. Defer across two UI
-            // queue passes so destruction finishes before a new MapMenu is created.
-            tasks->AddUITask([]() {
+            // UI tasks queued from another UI task can be drained in the same frame.
+            // Give the renderer real time to release the old map scene before asking
+            // the UI thread to create the replacement MapMenu.
+            logger::info("[WORLD SWITCH] Waiting 350 ms for old map scene teardown");
+            std::thread([]() {
+                std::this_thread::sleep_for(std::chrono::milliseconds(350));
+
                 auto* tasks = SKSE::GetTaskInterface();
 
                 if (!tasks) {
@@ -319,10 +320,10 @@ RE::BSEventNotifyControl EventProcessor::ProcessEvent(const RE::MenuOpenCloseEve
                         return;
                     }
 
-                    logger::trace("[WORLD SWITCH] Reopening MapMenu after deferred scene teardown");
+                    logger::info("[WORLD SWITCH] Reopening MapMenu after timed scene teardown");
                     queue->AddMessage(RE::MapMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kShow, nullptr);
                 });
-            });
+            }).detach();
         } else {
             g_mapWorldOverrideActive = false;
 
