@@ -4,6 +4,10 @@
 #include "Hooks.h"
 #include "WorldspaceWarmup.h"
 
+#ifdef PlaySound
+#undef PlaySound
+#endif
+
 namespace Scaleform {
     MapExtension::MapExtension() {
         auto scaleformManager = RE::BSScaleformManager::GetSingleton();
@@ -53,13 +57,13 @@ namespace Scaleform {
     }
 
     void MapExtension::Accept(RE::FxDelegateHandler::CallbackProcessor* a_cbReg) {
-        a_cbReg->Process("PlaySound", PlaySound);
+        a_cbReg->Process("PlaySound", PlayMenuSound);
         a_cbReg->Process("CloseMenu", CloseMenu);
         a_cbReg->Process("ChangeWorld", ChangeWorld);
         a_cbReg->Process("GetStats", GetStats);
     }
 
-    void MapExtension::PlaySound(const RE::FxDelegateArgs& a_params) {
+    void MapExtension::PlayMenuSound(const RE::FxDelegateArgs& a_params) {
         assert(a_params.GetArgCount() == 1);
         assert(a_params[0].IsString());
 

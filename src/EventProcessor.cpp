@@ -284,32 +284,44 @@ RE::BSEventNotifyControl EventProcessor::ProcessEvent(const RE::MenuOpenCloseEve
                 return RE::BSEventNotifyControl::kContinue;
             }
 
-            tasks->AddTask([]() {
-                auto* ui = RE::UI::GetSingleton();
+            // MapMenu's close event fires before all of its native map-scene resources
+            // have necessarily been detached. Reopening from this same cycle can leave
+            // the previous terrain root alive, which is especially visible with FWMF:
+            // the old and new paper maps are rendered together. Defer across two UI
+            // queue passes so destruction finishes before a new MapMenu is created.
+            tasks->AddUITask([]() {
+                auto* tasks = SKSE::GetTaskInterface();
 
-                if (!ui) {
-                    logger::error("[WORLD SWITCH] UI unavailable");
-
+                if (!tasks) {
+                    logger::error("[WORLD SWITCH] Task interface unavailable during deferred reopen");
                     return;
                 }
 
-                if (ui->IsMenuOpen(RE::MapMenu::MENU_NAME)) {
-                    logger::error(
-                        "[WORLD SWITCH] Old MapMenu is still open; "
-                        "reopen aborted");
+                tasks->AddUITask([]() {
+                    auto* ui = RE::UI::GetSingleton();
 
-                    return;
-                }
+                    if (!ui) {
+                        logger::error("[WORLD SWITCH] UI unavailable");
+                        return;
+                    }
 
-                auto* queue = RE::UIMessageQueue::GetSingleton();
+                    if (ui->IsMenuOpen(RE::MapMenu::MENU_NAME)) {
+                        logger::error(
+                            "[WORLD SWITCH] Old MapMenu is still open after deferred close; "
+                            "reopen aborted");
+                        return;
+                    }
 
-                if (!queue) {
-                    logger::error("[WORLD SWITCH] UI message queue unavailable");
+                    auto* queue = RE::UIMessageQueue::GetSingleton();
 
-                    return;
-                }
+                    if (!queue) {
+                        logger::error("[WORLD SWITCH] UI message queue unavailable");
+                        return;
+                    }
 
-                queue->AddMessage(RE::MapMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kShow, nullptr);
+                    logger::trace("[WORLD SWITCH] Reopening MapMenu after deferred scene teardown");
+                    queue->AddMessage(RE::MapMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kShow, nullptr);
+                });
             });
         } else {
             g_mapWorldOverrideActive = false;
@@ -334,7 +346,8 @@ RE::BSEventNotifyControl EventProcessor::ProcessEvent(const RE::MenuOpenCloseEve
 
 RE::BSEventNotifyControl EventProcessor::ProcessEvent(RE::InputEvent* const* eventPtr,
                                                       RE::BSTEventSource<RE::InputEvent*>*) {
-    if (!eventPtr || !*eventPtr || !RE::Main::GetSingleton()->gameActive) {
+    auto* main = RE::Main::GetSingleton();
+    if (!eventPtr || !*eventPtr || !main || !main->GetRuntimeData().gameActive) {
         return RE::BSEventNotifyControl::kContinue;
     }
 

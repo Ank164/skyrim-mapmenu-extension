@@ -38,7 +38,11 @@ endif()
 # set(OUTPUT_FOLDER "C:/path/to/any/folder")
 
 # Setup your SKSE plugin as an SKSE plugin!
-find_package(CommonLibSSE CONFIG REQUIRED)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+add_subdirectory(lib/commonlibsse-ng commonlib)
+if(NOT COMMAND add_commonlibsse_plugin)
+    include(lib/commonlibsse-ng/cmake/CommonLibSSE.cmake)
+endif()
 find_package(minhook CONFIG REQUIRED)
 add_commonlibsse_plugin(${PROJECT_NAME} SOURCES src/main.cpp
     src/Utility.cpp

@@ -26,22 +26,6 @@ extern bool g_mapWorldOverrideActive;
 
 static const std::string INI_FILE_PATH = "Data/Map Menu Extension.ini";
 
-namespace RE::BSModelDB {
-    struct DBTraits {
-        struct ArgsType {
-            std::uint32_t LODmult{0};
-            std::uint32_t texLoadLevel{3};
-            bool unk8{true};
-            bool unk9{false};
-            bool unkA{true};
-            bool postProcess{true};
-        };
-    };
-
-    BSResource::ErrorCode Demand(const char* a_modelPath, RE::NiPointer<RE::NiNode>& a_modelOut,
-                                 const DBTraits::ArgsType& a_args);
-}
-
 std::uint32_t GamepadKeycodeToMask(std::int32_t keyCode);
 
 struct WorldspaceBackup {

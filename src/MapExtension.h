@@ -28,7 +28,7 @@ namespace Scaleform {
         static RE::stl::owner<RE::IMenu*> Creator() { return new MapExtension(); }
 
     private:
-        static void PlaySound(const RE::FxDelegateArgs& a_params);
+        static void PlayMenuSound(const RE::FxDelegateArgs& a_params);
         static void CloseMenu(const RE::FxDelegateArgs& a_params);
         static void ChangeWorld(const RE::FxDelegateArgs& a_params);
         static void GetStats(const RE::FxDelegateArgs& a_params);

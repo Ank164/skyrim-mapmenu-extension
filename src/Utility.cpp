@@ -108,7 +108,7 @@ namespace {
             return false;
         }
 
-        return data->type == RE::MARKER_TYPE::kDLC02_ToSkyrim || data->type == RE::MARKER_TYPE::kDLC02_ToSolstheim ||
+        return data->type == RE::MARKER_TYPE::kDLC02ToSkyrim || data->type == RE::MARKER_TYPE::kDLC02ToSolstheim ||
                data->type.underlying() == 217; //217 is BS:Bruma's "To Skyrim" marker type
     }
 

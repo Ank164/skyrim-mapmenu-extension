@@ -517,7 +517,7 @@ void Hook_Accept(RE::MapMenu* menu, RE::FxDelegateHandler::CallbackProcessor* pr
     }
 
     if (!carrierWorld) {
-        carrierWorld = menu->GetRuntimeData2().worldSpace;
+        carrierWorld = menu->GetRuntimeData2()->worldSpace;
     }
 
     if (!carrierWorld) {
@@ -727,29 +727,6 @@ struct PlayerMarkerHook {
     }
 };
 
-namespace RE {
-    struct TeleportPath {
-        struct Unk00Data {
-            bool unk00;
-            char pad01[7];
-            RE::TESWorldSpace* worldspace;
-            RE::TESObjectCELL* interiorCell;
-        };
-
-        struct Unk18Data {
-            RE::TESObjectREFR* unk00;
-            std::uint64_t unk08;
-            std::uint64_t unk10;
-        };
-
-        RE::BSTArray<Unk00Data> unk00;
-        RE::BSTArray<Unk18Data> unk18;
-        std::uint64_t unk30;
-        std::uint64_t unk38;
-        std::uint64_t unk40;
-    };
-}
-
 namespace QuestMarkerRouteOverride {
     thread_local bool processingRemoteQuestRoutes = false;
 
@@ -779,10 +756,10 @@ namespace QuestMarkerRouteOverride {
 
         std::optional<std::size_t> targetIndex;
 
-        for (std::size_t i = 0; i < route->unk00.size(); ++i) {
-            const auto& space = route->unk00[i];
+        for (std::size_t i = 0; i < route->spaces.size(); ++i) {
+            const auto& space = route->spaces[i];
 
-            if (space.unk00 && space.worldspace && IsMarkerInWorld(space.worldspace, targetWorld)) {
+            if (space.isWorldspace && space.worldspace && IsMarkerInWorld(space.worldspace, targetWorld)) {
                 targetIndex = i;
                 break;
             }
@@ -797,21 +774,20 @@ namespace QuestMarkerRouteOverride {
 
         RE::TeleportPath trimmed{};
 
-        for (std::size_t i = *targetIndex; i < route->unk00.size(); ++i) {
-            trimmed.unk00.push_back(route->unk00[i]);
+        for (std::size_t i = *targetIndex; i < route->spaces.size(); ++i) {
+            trimmed.spaces.push_back(route->spaces[i]);
         }
 
-        for (std::size_t i = *targetIndex; i < route->unk18.size(); ++i) {
-            trimmed.unk18.push_back(route->unk18[i]);
+        for (std::size_t i = *targetIndex; i < route->teleportRefs.size(); ++i) {
+            trimmed.teleportRefs.push_back(route->teleportRefs[i]);
         }
 
-        trimmed.unk30 = route->unk30;
-        trimmed.unk38 = route->unk38;
-        trimmed.unk40 = route->unk40;
+        trimmed.start = route->start;
+        trimmed.end = route->end;
 
         logger::trace("[QuestRoute] Trimmed for '{}': entries {} -> {}, refs {} -> {}",
-                      targetWorld->GetName() ? targetWorld->GetName() : "<unnamed>", route->unk00.size(),
-                      trimmed.unk00.size(), route->unk18.size(), trimmed.unk18.size());
+                      targetWorld->GetName() ? targetWorld->GetName() : "<unnamed>", route->spaces.size(),
+                      trimmed.spaces.size(), route->teleportRefs.size(), trimmed.teleportRefs.size());
 
         return trimmed;
     }
