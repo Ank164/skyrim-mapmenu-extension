@@ -239,19 +239,41 @@ RE::BSEventNotifyControl EventProcessor::ProcessEvent(const RE::MenuOpenCloseEve
             pendingWorldSwitch = false;
             pendingMapReopen = true;
 
-            auto* queue = RE::UIMessageQueue::GetSingleton();
+            // Let the extension SWF finish removing its list and mask display layers
+            // before closing the MapMenu that owns the underlying render surface.
+            // Closing both in the same UI cycle can strand the alternating list-row
+            // mask over the next world map, producing the horizontal stripe pattern.
+            logger::info("[WORLD SWITCH] Waiting 150 ms for extension display teardown");
+            std::thread([]() {
+                std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
-            if (!queue) {
-                logger::error("[WORLD SWITCH] UI message queue unavailable");
+                auto* tasks = SKSE::GetTaskInterface();
+                if (!tasks) {
+                    pendingMapReopen = false;
+                    logger::error("[WORLD SWITCH] Task interface unavailable before MapMenu close");
+                    return;
+                }
 
-                pendingMapReopen = false;
+                tasks->AddUITask([]() {
+                    auto* ui = RE::UI::GetSingleton();
+                    auto* queue = RE::UIMessageQueue::GetSingleton();
 
-                return RE::BSEventNotifyControl::kContinue;
-            }
+                    if (!ui || !queue) {
+                        pendingMapReopen = false;
+                        logger::error("[WORLD SWITCH] UI unavailable before MapMenu close");
+                        return;
+                    }
 
-            logger::trace("[WORLD SWITCH] Queuing MapMenu hide");
+                    if (ui->IsMenuOpen(Scaleform::MapExtension::MENU_NAME)) {
+                        pendingMapReopen = false;
+                        logger::error("[WORLD SWITCH] Extension still open; MapMenu close aborted");
+                        return;
+                    }
 
-            queue->AddMessage(RE::MapMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kHide, nullptr);
+                    logger::info("[WORLD SWITCH] Extension removed; closing MapMenu");
+                    queue->AddMessage(RE::MapMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kForceHide, nullptr);
+                });
+            }).detach();
         }
     } else if (!event->opening && event->menuName == RE::MapMenu::MENU_NAME) {
         Scaleform::MapExtensionHint::Hide();
